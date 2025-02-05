@@ -1,7 +1,7 @@
 <p align="center"><img src="logo.svg" width="196" height="196"></p>
 
 > [!TIP]
-> :sparkles: Join the international MOTIS community at [**motis:matrix.org**](https://matrix.to/#/#motis:matrix.org)
+> :sparkles: Join the international MOTIS community at [**#motis:matrix.org**](https://matrix.to/#/#motis:matrix.org)
 
 MOTIS stands for **M**odular **O**pen **T**ransportation **I**nformation **S**ystem.
 It is an open-source software platform designed to facilitate
