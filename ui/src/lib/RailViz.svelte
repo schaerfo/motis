@@ -3,7 +3,7 @@
 	import { MapboxOverlay } from '@deck.gl/mapbox';
 	import { IconLayer } from '@deck.gl/layers';
 	import { createTripIcon } from '$lib/map/createTripIcon';
-	import { getColor } from '$lib/modeStyle';
+	import { type Colorable, getColor, getModeStyle } from '$lib/modeStyle';
 	import getDistance from '@turf/rhumb-distance';
 	import getBearing from '@turf/rhumb-bearing';
 	import polyline from '@mapbox/polyline';
@@ -14,6 +14,7 @@
 	import Control from '$lib/map/Control.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import Palette from 'lucide-svelte/icons/palette';
+	import TrainFront from 'lucide-svelte/icons/train-front';
 	import Rss from 'lucide-svelte/icons/rss';
 	import LocateFixed from 'lucide-svelte/icons/locate-fixed';
 	import { browser } from '$app/environment';
@@ -29,7 +30,7 @@
 		zoom: number;
 	} = $props();
 
-	let colorMode = $state<'rt' | 'route'>('route');
+	let colorMode = $state<'rt' | 'mode' | 'route'>('mode');
 	let railvizError = $state();
 
 	type RGBA = [number, number, number, number];
@@ -159,6 +160,14 @@
 			return [163, 0, 10, 255];
 		};
 
+		const getModeColor = (d: Colorable): RGBA => {
+			return hexToRgb(getModeStyle(d)[1])
+		}
+
+		const getRouteColor = (d: Colorable): RGBA => {
+			return hexToRgb(getColor(d)[0])
+		}
+
 		return new IconLayer<
 			{
 				realTime: boolean;
@@ -172,10 +181,13 @@
 			id: 'trips',
 			data: tripsWithFrame,
 			beforeId: 'road-name-text',
-			getColor: (d) =>
-				colorMode == 'rt'
-					? getDelayColor(d.departureDelay, d.arrivalDelay, d.realTime)
-					: hexToRgb(getColor(d)[0]),
+			getColor: (d) => {
+				switch (colorMode) {
+					case 'rt': getDelayColor(d.departureDelay, d.arrivalDelay, d.realTime)
+					case 'mode': return getModeColor(d)
+					case 'route': return getRouteColor(d)
+				}
+			},
 			getAngle: (d) => -d.heading + 90,
 			getPosition: (d) => d.point,
 			getSize: (_) => 48,
@@ -323,11 +335,13 @@
 		size="icon"
 		variant={colorMode ? 'default' : 'outline'}
 		onclick={() => {
-			colorMode = colorMode == 'rt' ? 'route' : 'rt';
+			colorMode = colorMode == 'rt' ? 'mode' : colorMode == 'mode' ? 'route' : 'rt';
 		}}
 	>
 		{#if colorMode == 'rt'}
 			<Rss class="h-[1.2rem] w-[1.2rem]" />
+		{:else if colorMode == 'mode'}
+			<TrainFront class="h-[1.2rem] w-[1.2rem]" />
 		{:else}
 			<Palette class="h-[1.2rem] w-[1.2rem]" />
 		{/if}
