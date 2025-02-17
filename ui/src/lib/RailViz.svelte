@@ -333,7 +333,6 @@
 <Control position={browser && window.innerWidth < 768 ? 'bottom-left' : 'top-right'} class="pb-4">
 	<Button
 		size="icon"
-		variant={colorMode ? 'default' : 'outline'}
 		onclick={() => {
 			colorMode = colorMode == 'rt' ? 'mode' : colorMode == 'mode' ? 'route' : 'rt';
 		}}
