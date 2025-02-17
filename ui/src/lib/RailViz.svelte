@@ -31,6 +31,7 @@
 	} = $props();
 
 	let colorMode = $state<'rt' | 'mode' | 'route'>('mode');
+	let colorModeSelectionActive = $state<boolean>(false);
 	let railvizError = $state();
 
 	type RGBA = [number, number, number, number];
@@ -331,20 +332,38 @@
 </script>
 
 <Control position={browser && window.innerWidth < 768 ? 'bottom-left' : 'top-right'} class="pb-4">
-	<Button
-		size="icon"
-		onclick={() => {
-			colorMode = colorMode == 'rt' ? 'mode' : colorMode == 'mode' ? 'route' : 'rt';
-		}}
-	>
-		{#if colorMode == 'rt'}
-			<Rss class="h-[1.2rem] w-[1.2rem]" />
-		{:else if colorMode == 'mode'}
-			<TrainFront class="h-[1.2rem] w-[1.2rem]" />
-		{:else}
-			<Palette class="h-[1.2rem] w-[1.2rem]" />
-		{/if}
-	</Button>
+	{#if colorModeSelectionActive}
+		<div>
+			<button
+				onclick={() => {
+					colorMode = 'rt';
+					colorModeSelectionActive = false;
+				}}>Real-time<Rss strokeWidth={colorMode == 'rt' ? 3 : 2} /></button
+			>
+			<button
+				onclick={() => {
+					colorMode = 'mode';
+					colorModeSelectionActive = false;
+				}}>Mode<TrainFront strokeWidth={colorMode == 'mode' ? 3 : 2} /></button
+			>
+			<button
+				onclick={() => {
+					colorMode = 'route';
+					colorModeSelectionActive = false;
+				}}>Route<Palette strokeWidth={colorMode == 'route' ? 3 : 2} /></button
+			>
+		</div>
+	{:else}
+		<Button size="icon" onclick={() => (colorModeSelectionActive = true)}>
+			{#if colorMode == 'rt'}
+				<Rss class="h-[1.2rem] w-[1.2rem]" />
+			{:else if colorMode == 'mode'}
+				<TrainFront class="h-[1.2rem] w-[1.2rem]" />
+			{:else}
+				<Palette class="h-[1.2rem] w-[1.2rem]" />
+			{/if}
+		</Button>
+	{/if}
 	<Button size="icon" onclick={() => getLocation()}>
 		<LocateFixed class="w-5 h-5" />
 	</Button>
