@@ -138,7 +138,7 @@ target_link_libraries(itinerary-id-proto protobuf::libprotobuf)
 
 
 # --- LIB ---
-file(GLOB_RECURSE motislib-files src/*.cc)
+file(GLOB_RECURSE motislib-files CONFIGURE_DEPENDS src/*.cc include/motis/*.h)
 add_library(motislib ${motislib-files})
 target_include_directories(motislib PUBLIC include)
 target_include_directories(
@@ -178,7 +178,7 @@ execute_process(
     OUTPUT_VARIABLE motis-git-tag
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-file(GLOB_RECURSE motis-files exe/*.cc)
+file(GLOB_RECURSE motis-files CONFIGURE_DEPENDS exe/*.cc exe/*.h)
 add_executable(motis ${motis-files})
 target_compile_features(motis PUBLIC cxx_std_23)
 target_compile_options(motis PRIVATE ${motis-compile-options})
