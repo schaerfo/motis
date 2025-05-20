@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <memory>
+#include <type_traits>
+#include <variant>
 
 #include "utl/concat.h"
 #include "utl/enumerate.h"
@@ -283,6 +285,30 @@ std::vector<n::rt::run> get_events(
   return evs;
 }
 
+template <n::event_type t>
+using event_metatype = std::integral_constant<n::event_type, t>;
+
+using event_variant = std::variant<event_metatype<n::event_type::kArr>, event_metatype<n::event_type::kDep>>;
+
+std::vector<api::Place> other_stops(n::rt::frun const& /*fr*/, n::event_type ev_type, n::location_idx_t /*location*/, n::timetable const* /*tt*/,
+                                    tag_lookup const& /*tags*/,
+                                    osr::ways const* /*w*/,
+                                    osr::platforms const* /*pl*/,
+                                    platform_matches_t const* /*matches*/) {
+  auto const event = ev_type == n::event_type::kArr ? event_variant{event_metatype<n::event_type::kArr>{}} : event_variant{event_metatype<n::event_type::kDep>{}};
+  std::visit(utl::overloaded{
+                             [&](event_metatype<n::event_type::kArr>) {
+                   // reverse run
+                   // slice run range at location and transform into Place
+                 },
+                 [&](event_metatype<n::event_type::kDep>) {
+                   // slice run range at location and transform into Place
+                 },
+
+  }, event);
+  return {};
+}
+
 api::stoptimes_response stop_times::operator()(
     boost::urls::url_view const& url) const {
   auto const query = api::stoptimes_params{url.params()};
@@ -404,6 +430,9 @@ api::stoptimes_response stop_times::operator()(
                     to_str(s.get_route_color(ev_type).text_color_),
                 .tripId_ = tags_.id(tt_, s, ev_type),
                 .routeShortName_ = std::string{s.trip_display_name(ev_type)},
+                .otherStops_ = query.fetchStops_.value_or(false) ?
+                                   std::optional{other_stops(fr, ev_type, x, &tt_, tags_, w_, pl_, matches_)}
+                                                                 : std::nullopt,
                 .pickupDropoffType_ =
                     in_out_allowed ? api::PickupDropoffTypeEnum::NORMAL
                                    : api::PickupDropoffTypeEnum::NOT_ALLOWED,
