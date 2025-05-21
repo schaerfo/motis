@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <ranges>
 #include <type_traits>
 #include <variant>
 
@@ -23,6 +24,8 @@
 #include "motis/timetable/clasz_to_mode.h"
 #include "motis/timetable/modes_to_clasz_mask.h"
 #include "motis/timetable/time_conv.h"
+#include "utl/logging.h"
+#include "utl/parser/split.h"
 
 namespace n = nigiri;
 
@@ -290,23 +293,40 @@ using event_metatype = std::integral_constant<n::event_type, t>;
 
 using event_variant = std::variant<event_metatype<n::event_type::kArr>, event_metatype<n::event_type::kDep>>;
 
-std::vector<api::Place> other_stops(n::rt::frun const& /*fr*/, n::event_type ev_type, n::location_idx_t /*location*/, n::timetable const* /*tt*/,
-                                    tag_lookup const& /*tags*/,
-                                    osr::ways const* /*w*/,
-                                    osr::platforms const* /*pl*/,
-                                    platform_matches_t const* /*matches*/) {
-  auto const event = ev_type == n::event_type::kArr ? event_variant{event_metatype<n::event_type::kArr>{}} : event_variant{event_metatype<n::event_type::kDep>{}};
-  std::visit(utl::overloaded{
+std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type /*ev_type*/, n::location_idx_t location, n::timetable const* tt, n::rt_timetable const* rtt,
+                                    tag_lookup const& tags,
+                                    osr::ways const* w,
+                                    osr::platforms const* pl,
+                                    platform_matches_t const* matches) {
+  //auto const event = ev_type == n::event_type::kArr ? event_variant{event_metatype<n::event_type::kArr>{}} : event_variant{event_metatype<n::event_type::kDep>{}};
+  /*const auto convert_run = [&](auto&& stop_range) {
+
+  };
+  const auto result = std::visit(utl::overloaded{
                              [&](event_metatype<n::event_type::kArr>) {
+                                         return convert_run(fr | std::views::reverse);
                    // reverse run
                    // slice run range at location and transform into Place
                  },
                  [&](event_metatype<n::event_type::kDep>) {
-                   // slice run range at location and transform into Place
+                                         return convert_run(fr);
                  },
-
-  }, event);
-  return {};
+  }, event);*/
+  // TODO is this possible without taking the round trip via the trip id?
+  auto const [r, _] = tags.get_trip(*tt, rtt, trip_id);
+  auto fr = n::rt::frun{*tt, rtt, r};
+  assert(r.valid());
+  auto it = std::find_if(fr.begin(), fr.end(), [&](const n::rt::run_stop& stop){
+    // TODO the trip under investigation might stop on another platform than the one originally requested
+    return stop.get_location_idx() == location;
+  });
+  if (it != fr.end()) {
+    ++it;
+  }
+  const auto result = utl::to_vec(it, fr.end(), [&](const n::rt::run_stop& stop){
+    return to_place(tt, &tags, w, pl, matches, tt_location{stop});
+  });
+  return result;
 }
 
 api::stoptimes_response stop_times::operator()(
@@ -412,6 +432,8 @@ api::stoptimes_response stop_times::operator()(
                      ? !s.out_allowed() && s.get_scheduled_stop().out_allowed()
                      : !s.in_allowed() && s.get_scheduled_stop().in_allowed());
 
+            auto const trip_id = tags_.id(tt_, s, ev_type);
+
             return {
                 .place_ = std::move(place),
                 .mode_ = to_mode(s.get_clasz(ev_type)),
@@ -428,10 +450,10 @@ api::stoptimes_response stop_times::operator()(
                 .routeColor_ = to_str(s.get_route_color(ev_type).color_),
                 .routeTextColor_ =
                     to_str(s.get_route_color(ev_type).text_color_),
-                .tripId_ = tags_.id(tt_, s, ev_type),
+                .tripId_ = trip_id,
                 .routeShortName_ = std::string{s.trip_display_name(ev_type)},
                 .otherStops_ = query.fetchStops_.value_or(false) ?
-                                   std::optional{other_stops(fr, ev_type, x, &tt_, tags_, w_, pl_, matches_)}
+                                   std::optional{other_stops(trip_id, ev_type, x, &tt_, rtt, tags_, w_, pl_, matches_)}
                                                                  : std::nullopt,
                 .pickupDropoffType_ =
                     in_out_allowed ? api::PickupDropoffTypeEnum::NORMAL
