@@ -324,7 +324,10 @@ std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type /*ev
     ++it;
   }
   const auto result = utl::to_vec(it, fr.end(), [&](const n::rt::run_stop& stop){
-    return to_place(tt, &tags, w, pl, matches, tt_location{stop});
+    auto result = to_place(tt, &tags, w, pl, matches, tt_location{stop});
+    result.arrival_ = stop.time(n::event_type::kArr);
+    result.scheduledArrival_ = stop.scheduled_time(n::event_type::kArr);
+    return result;
   });
   return result;
 }
