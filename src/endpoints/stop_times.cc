@@ -293,7 +293,7 @@ using event_metatype = std::integral_constant<n::event_type, t>;
 
 using event_variant = std::variant<event_metatype<n::event_type::kArr>, event_metatype<n::event_type::kDep>>;
 
-std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type /*ev_type*/, n::location_idx_t location, n::timetable const* tt, n::rt_timetable const* rtt,
+std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type /*ev_type*/, n::rt::run_stop const& stop, n::timetable const* tt, n::rt_timetable const* rtt,
                                     tag_lookup const& tags,
                                     osr::ways const* w,
                                     osr::platforms const* pl,
@@ -316,9 +316,9 @@ std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type /*ev
   auto const [r, _] = tags.get_trip(*tt, rtt, trip_id);
   auto fr = n::rt::frun{*tt, rtt, r};
   assert(r.valid());
-  auto it = std::find_if(fr.begin(), fr.end(), [&](const n::rt::run_stop& stop){
-    // TODO the trip under investigation might stop on another platform than the one originally requested
-    return stop.get_location_idx() == location;
+  auto it = std::find_if(fr.begin(), fr.end(), [&](const n::rt::run_stop& stop2){
+    // The stop index is different so we have to compare the location index
+    return stop.get_location_idx() == stop2.get_location_idx();
   });
   if (it != fr.end()) {
     ++it;
@@ -453,7 +453,7 @@ api::stoptimes_response stop_times::operator()(
                 .tripId_ = trip_id,
                 .routeShortName_ = std::string{s.trip_display_name(ev_type)},
                 .otherStops_ = query.fetchStops_.value_or(false) ?
-                                   std::optional{other_stops(trip_id, ev_type, x, &tt_, rtt, tags_, w_, pl_, matches_)}
+                                   std::optional{other_stops(trip_id, ev_type, s, &tt_, rtt, tags_, w_, pl_, matches_)}
                                                                  : std::nullopt,
                 .pickupDropoffType_ =
                     in_out_allowed ? api::PickupDropoffTypeEnum::NORMAL
