@@ -1,8 +1,10 @@
 #include <ctime>
+#include <stdexcept>
 
 #include "motis/tag_lookup.h"
 
 #include "fmt/chrono.h"
+#include "fmt/format.h"
 #include "fmt/core.h"
 
 #include "cista/io.h"
@@ -137,10 +139,10 @@ nigiri::location_idx_t tag_lookup::get_location(nigiri::timetable const& tt,
   auto const src = get_src(tag);
   try {
     return tt.locations_.location_id_to_idx_.at({{id}, src});
-  } catch (...) {
-    throw utl::fail(
-        R"(could not find timetable location "{}", tag="{}", id="{}", src={})",
-        s, tag, id, static_cast<int>(to_idx(src)));
+  } catch (const std::out_of_range& e) {
+    throw std::out_of_range{
+        fmt::format(R"(could not find timetable location "{}", tag="{}", id="{}", src={})",
+        s, tag, id, static_cast<int>(to_idx(src)))};
   }
 }
 

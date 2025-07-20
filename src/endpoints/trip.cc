@@ -1,6 +1,9 @@
 #include "motis/endpoints/trip.h"
 
 #include <chrono>
+#include <stdexcept>
+
+#include "fmt/format.h"
 
 #include "nigiri/routing/journey.h"
 #include "nigiri/rt/frun.h"
@@ -26,8 +29,10 @@ api::Itinerary trip::operator()(boost::urls::url_view const& url) const {
   auto const api_version = url.encoded_path().contains("/v1/") ? 1U : 2U;
 
   auto const [r, _] = tags_.get_trip(tt_, rtt, query.tripId_);
-  utl::verify(r.valid(), "trip not found: tripId={}, tt={}", query.tripId_,
-              tt_.external_interval());
+  if (!r.valid()){
+    throw std::out_of_range{fmt::format("trip not found: tripId={}, tt={}", query.tripId_,
+              tt_.external_interval())};
+  }
 
   auto fr = n::rt::frun{tt_, rtt, r};
   fr.stop_range_.to_ = fr.size();
