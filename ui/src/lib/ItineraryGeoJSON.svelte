@@ -151,13 +151,15 @@
 	<Layer
 		id="intermediate-stops-name"
 		type="symbol"
-		layout={{}}
+		layout={{
+			'text-field': ['get', 'name'],
+			'text-font': ['Noto Sans Display Regular'],
+			'text-size': 12,
+			'text-offset': [0, 1.5],
+			'text-anchor': 'top'
+		}}
 		filter={true}
 		paint={{
-			'text-field': ['get', 'name'],
-			//'text-size': 12,
-			//'text-offset': [0, 1.5],
-			//'text-anchor': 'top'
 		}}
 	/>
 </GeoJSON>
