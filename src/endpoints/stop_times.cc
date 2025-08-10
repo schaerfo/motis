@@ -316,6 +316,8 @@ std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type /*ev
   auto const [r, _] = tags.get_trip(*tt, rtt, trip_id);
   auto fr = n::rt::frun{*tt, rtt, r};
   assert(r.valid());
+  fr.stop_range_.to_ = fr.size();
+  fr.stop_range_.from_ = 0U;
   auto it = std::find_if(fr.begin(), fr.end(), [&](const n::rt::run_stop& stop2){
     // The stop index is different so we have to compare the location index
     return stop.get_location_idx() == stop2.get_location_idx();
