@@ -120,8 +120,6 @@
 			'line-opacity': 0.8
 		}}
 	/>
-</GeoJSON>
-<GeoJSON id="intermediate-stops" data={intermediateStopsGeoJSON}>
 	<Layer
 		id="path"
 		type="line"
@@ -136,6 +134,8 @@
 			'line-opacity': 0.8
 		}}
 	/>
+</GeoJSON>
+<GeoJSON id="intermediate-stops" data={intermediateStopsGeoJSON}>
 	<Layer
 		id="intermediate-stops"
 		type="circle"
