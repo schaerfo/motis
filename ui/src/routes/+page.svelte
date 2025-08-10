@@ -589,7 +589,7 @@
 					</Card>
 				</Control>
 				{#if showMap}
-					<ItineraryGeoJson itinerary={page.state.selectedItinerary} {level} />
+					<ItineraryGeoJson itinerary={page.state.selectedItinerary} {level} {theme}/>
 				{/if}
 			{/if}
 

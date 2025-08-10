@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Layer from '$lib/map/Layer.svelte';
 	import GeoJSON from '$lib/map/GeoJSON.svelte';
-	import type { Itinerary, Mode, Place } from '$lib/api/openapi';
+	import type { Itinerary, Leg, Mode, Place } from '$lib/api/openapi';
 	import { getColor } from '$lib/modeStyle';
 	import polyline from '@mapbox/polyline';
 	import { colord } from 'colord';
@@ -64,11 +64,12 @@
 		};
 	}
 
-	function placeToFeature(place: Place): GeoJSON.Feature {
+	function placeToFeature(place: Place, l: Leg): GeoJSON.Feature {
 		return {
 			type: 'Feature',
 			properties: {
-				name: place.name
+				name: place.name,
+				color: getColor(l)[0]
 			},
 			geometry: {
 				type: 'Point',
@@ -84,16 +85,20 @@
 				// Add Point features for intermediate stops
 				i.legs
 					.filter((l) => !isIndividualTransport(l.mode))
-					.flatMap((l) => [l.from, ...(l.intermediateStops ?? []), l.to].map(placeToFeature))
+					.flatMap((l) =>
+						[l.from, ...(l.intermediateStops ?? []), l.to].map((p) => placeToFeature(p, l))
+					)
 		};
 	}
 
 	const {
 		itinerary,
-		level
+		level,
+		theme
 	}: {
 		itinerary: Itinerary;
 		level: number;
+		theme: 'dark' | 'light';
 	} = $props();
 
 	const geojson = $derived(itineraryToGeoJSON(itinerary));
@@ -138,9 +143,9 @@
 		filter={true}
 		paint={{
 			'circle-radius': 6,
-			'circle-color': '#fff',
+			'circle-color': ['get', 'color'],
 			'circle-stroke-width': 2,
-			'circle-stroke-color': '#42a5f5'
+			'circle-stroke-color': theme == 'dark' ? '#fff' : '#000'
 		}}
 	/>
 	<Layer
