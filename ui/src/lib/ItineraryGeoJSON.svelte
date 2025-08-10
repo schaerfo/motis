@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Layer from '$lib/map/Layer.svelte';
 	import GeoJSON from '$lib/map/GeoJSON.svelte';
-	import type { Itinerary, Mode } from '$lib/api/openapi';
+	import type { Itinerary, Mode, Place } from '$lib/api/openapi';
 	import { getColor } from '$lib/modeStyle';
 	import polyline from '@mapbox/polyline';
 	import { colord } from 'colord';
@@ -64,6 +64,30 @@
 		};
 	}
 
+	function placeToFeature(place: Place): GeoJSON.Feature {
+		return {
+			type: 'Feature',
+			properties: {
+				name: place.name
+			},
+			geometry: {
+				type: 'Point',
+				coordinates: [place.lon, place.lat]
+			}
+		};
+	}
+
+	function intermediateStopsToGeoJSON(i: Itinerary): GeoJSON.GeoJSON {
+		return {
+			type: 'FeatureCollection',
+			features:
+				// Add Point features for intermediate stops
+				i.legs
+					.filter((l) => !isIndividualTransport(l.mode))
+					.flatMap((l) => [l.from, ...(l.intermediateStops ?? []), l.to].map(placeToFeature))
+		};
+	}
+
 	const {
 		itinerary,
 		level
@@ -73,6 +97,7 @@
 	} = $props();
 
 	const geojson = $derived(itineraryToGeoJSON(itinerary));
+	const intermediateStopsGeoJSON = $derived(intermediateStopsToGeoJSON(itinerary));
 </script>
 
 <GeoJSON id="route" data={geojson}>
@@ -90,6 +115,8 @@
 			'line-opacity': 0.8
 		}}
 	/>
+</GeoJSON>
+<GeoJSON id="intermediate-stops" data={intermediateStopsGeoJSON}>
 	<Layer
 		id="path"
 		type="line"
@@ -102,6 +129,30 @@
 			'line-color': ['get', 'color'],
 			'line-width': 7.5,
 			'line-opacity': 0.8
+		}}
+	/>
+	<Layer
+		id="intermediate-stops"
+		type="circle"
+		layout={{}}
+		filter={true}
+		paint={{
+			'circle-radius': 6,
+			'circle-color': '#fff',
+			'circle-stroke-width': 2,
+			'circle-stroke-color': '#42a5f5'
+		}}
+	/>
+	<Layer
+		id="intermediate-stops-name"
+		type="symbol"
+		layout={{}}
+		filter={true}
+		paint={{
+			'text-field': ['get', 'name'],
+			//'text-size': 12,
+			//'text-offset': [0, 1.5],
+			//'text-anchor': 'top'
 		}}
 	/>
 </GeoJSON>
