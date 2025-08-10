@@ -160,6 +160,18 @@
 		}}
 		filter={true}
 		paint={{
+			'text-halo-width': 2,
+			// Use a darker hue of the line color for dark theme and a lighter hue for light theme
+			'text-halo-color': [
+				'interpolate-hcl',
+				['linear'],
+				0.6,
+				0,
+				['get', 'color'],
+				1,
+				theme == 'dark' ? '#000' : '#fff'
+			],
+			'text-color': theme == 'dark' ? '#fff' : '#000'
 		}}
 	/>
 </GeoJSON>
