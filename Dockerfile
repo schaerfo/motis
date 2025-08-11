@@ -3,7 +3,7 @@ FROM ghcr.io/motis-project/docker-cpp-build AS builder
 WORKDIR /motis
 COPY . .
 RUN cmake -G Ninja -S . -B build --preset=linux-amd64-release \
-&& cmake --build build --target motis motis-web-ui
+&& cmake --build build --target motis
 RUN ./build/motis import
 
 FROM alpine:3.20

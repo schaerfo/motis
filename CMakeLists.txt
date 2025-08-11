@@ -204,14 +204,6 @@ if (MOTIS_MIMALLOC)
 endif()
 
 
-# --- UI ---
-add_custom_target(motis-web-ui
-        COMMAND pnpm install && pnpm build
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/ui"
-        VERBATIM
-)
-file (CREATE_LINK ${CMAKE_SOURCE_DIR}/ui/build ${CMAKE_BINARY_DIR}/ui SYMBOLIC)
-
 foreach(t adr osr nigiri gtfsrt
         geo tiles tiles-import-library
         motis motis-api motislib)
