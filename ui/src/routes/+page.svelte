@@ -76,6 +76,7 @@
 	let colorMode = $state<'rt' | 'route' | 'mode' | 'none'>('route');
 	let showMap = $state(!isSmallScreen);
 	let lastSelectedItinerary: Itinerary | undefined = undefined;
+	let selectedItineraryIdx = $state<[number, number] | undefined>(undefined);
 	let lastOneToAllQuery: OneToAllData | undefined = undefined;
 
 	let theme: 'light' | 'dark' =
@@ -585,10 +586,22 @@
 					selectItinerary={(selectedItinerary) => {
 						pushState('', { selectedItinerary: selectedItinerary, scrollY: undefined });
 					}}
+					bind:selectedItineraryIdx
 					updateStartDest={preprocessItinerary(from, to)}
 				/>
 			</Card>
 		</Control>
+		{#if showMap}
+			{#each routingResponses as r, rI (rI)}
+				{#await r then r}
+					{#each r.itineraries as it, i (i)}
+						{#if selectedItineraryIdx == undefined || (selectedItineraryIdx != undefined && selectedItineraryIdx[0] != rI) || selectedItineraryIdx[1] != i}
+							<ItineraryGeoJson itinerary={it} id="{rI}-{i}" selected={false} {level} {theme} />
+						{/if}
+					{/each}
+				{/await}
+			{/each}
+		{/if}
 	{/if}
 
 	{#if activeTab != 'isochrones' && page.state.selectedItinerary && !page.state.showDepartures}
@@ -614,7 +627,7 @@
 			</Card>
 		</Control>
 		{#if showMap}
-			<ItineraryGeoJson itinerary={page.state.selectedItinerary} {level} />
+			<ItineraryGeoJson itinerary={page.state.selectedItinerary} selected={true} {level} {theme} />
 			<StopGeoJSON itinerary={page.state.selectedItinerary} {theme} />
 		{/if}
 	{/if}
@@ -636,6 +649,7 @@
 						variant="ghost"
 						onclick={() => {
 							history.back();
+							selectedItineraryIdx = undefined;
 						}}
 					>
 						<X />
@@ -748,7 +762,16 @@
 				</Button>
 			</Control>
 			{#if colorMode != 'none'}
-				<RailViz {map} {bounds} {zoom} {colorMode} />
+				<RailViz
+					selectTrip={(tripId) => {
+						onClickTrip(tripId);
+						selectedItineraryIdx = undefined;
+					}}
+					{map}
+					{bounds}
+					{zoom}
+					{colorMode}
+				/>
 				<Rentals {map} {bounds} {zoom} />
 			{/if}
 		{/if}
