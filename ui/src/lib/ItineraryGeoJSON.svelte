@@ -21,45 +21,49 @@
 		}
 	}
 
-	function itineraryToGeoJSON(i: Itinerary): GeoJSON.GeoJSON {
+	function itinerariesToGeoJSON(i: Array<Itinerary>): GeoJSON.GeoJSON {
 		return {
 			type: 'FeatureCollection',
-			features: i.legs.flatMap((l) => {
-				if (l.steps) {
-					const color = isIndividualTransport(l.mode)
-						? getIndividualModeColor(l.mode)
-						: `${getColor(l)[0]}`;
-					const outlineColor = colord(color).darken(0.2).toHex();
-					return l.steps.map((p) => {
+			features: i.flatMap((itinerary) => {
+				return itinerary.legs.flatMap((l) => {
+					if (l.steps) {
+						const color = isIndividualTransport(l.mode)
+							? getIndividualModeColor(l.mode)
+							: `${getColor(l)[0]}`;
+						const outlineColor = colord(color).darken(0.2).toHex();
+						return l.steps.map((p) => {
+							return {
+								type: 'Feature',
+								properties: {
+									color,
+									outlineColor,
+									level: p.fromLevel,
+									way: p.osmWay
+								},
+								geometry: {
+									type: 'LineString',
+									coordinates: polyline.decode(p.polyline.points, PRECISION).map(([x, y]) => [y, x])
+								}
+							};
+						});
+					} else {
+						const color = `${getColor(l)[0]}`;
+						const outlineColor = colord(color).darken(0.2).toHex();
 						return {
 							type: 'Feature',
 							properties: {
-								color,
 								outlineColor,
-								level: p.fromLevel,
-								way: p.osmWay
+								color
 							},
 							geometry: {
 								type: 'LineString',
-								coordinates: polyline.decode(p.polyline.points, PRECISION).map(([x, y]) => [y, x])
+								coordinates: polyline
+									.decode(l.legGeometry.points, PRECISION)
+									.map(([x, y]) => [y, x])
 							}
 						};
-					});
-				} else {
-					const color = `${getColor(l)[0]}`;
-					const outlineColor = colord(color).darken(0.2).toHex();
-					return {
-						type: 'Feature',
-						properties: {
-							outlineColor,
-							color
-						},
-						geometry: {
-							type: 'LineString',
-							coordinates: polyline.decode(l.legGeometry.points, PRECISION).map(([x, y]) => [y, x])
-						}
-					};
-				}
+					}
+				});
 			})
 		};
 	}
@@ -92,17 +96,17 @@
 	}
 
 	const {
-		itinerary,
+		itineraries,
 		level,
 		theme
 	}: {
-		itinerary: Itinerary;
+		itineraries: Array<Itinerary>;
 		level: number;
 		theme: 'dark' | 'light';
 	} = $props();
 
-	const geojson = $derived(itineraryToGeoJSON(itinerary));
-	const intermediateStopsGeoJSON = $derived(intermediateStopsToGeoJSON(itinerary));
+	const geojson = $derived(itinerariesToGeoJSON(itineraries));
+	//const intermediateStopsGeoJSON = $derived(intermediateStopsToGeoJSON(itineraries));
 </script>
 
 <GeoJSON id="route" data={geojson}>
@@ -115,7 +119,7 @@
 		}}
 		filter={['any', ['!has', 'level'], ['==', 'level', level]]}
 		paint={{
-			'line-color': ['get', 'outlineColor'],
+			'line-color': theme == 'dark' ? '#222' : '#aaa',
 			'line-width': 10,
 			'line-opacity': 0.8
 		}}
@@ -129,13 +133,13 @@
 		}}
 		filter={['any', ['!has', 'level'], ['==', 'level', level]]}
 		paint={{
-			'line-color': ['get', 'color'],
+			'line-color': theme == 'dark' ? '#555' : '#bbb',
 			'line-width': 7.5,
 			'line-opacity': 0.8
 		}}
 	/>
 </GeoJSON>
-<GeoJSON id="intermediate-stops" data={intermediateStopsGeoJSON}>
+<!--<GeoJSON id="intermediate-stops" data={intermediateStopsGeoJSON}>
 	<Layer
 		id="intermediate-stops"
 		type="circle"
@@ -174,4 +178,4 @@
 			'text-color': theme == 'dark' ? '#fff' : '#000'
 		}}
 	/>
-</GeoJSON>
+</GeoJSON>-->

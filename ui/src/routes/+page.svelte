@@ -564,6 +564,11 @@
 						/>
 					</Card>
 				</Control>
+				{#await Promise.all(routingResponses) then datas}
+					{#key datas}
+						<ItineraryGeoJson itineraries={datas.flatMap(d => d.itineraries)} level={level} theme={theme} />
+					{/key}
+				{/await}
 			{/if}
 
 			{#if activeTab != 'isochrones' && page.state.selectedItinerary && !page.state.showDepartures}
@@ -588,9 +593,6 @@
 						</div>
 					</Card>
 				</Control>
-				{#if showMap}
-					<ItineraryGeoJson itinerary={page.state.selectedItinerary} {level} {theme}/>
-				{/if}
 			{/if}
 
 			{#if activeTab != 'isochrones' && page.state.selectedStop && page.state.showDepartures}
