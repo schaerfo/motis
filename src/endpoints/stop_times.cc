@@ -298,7 +298,7 @@ std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type ev_t
                                     osr::ways const* w,
                                     osr::platforms const* pl,
                                     platform_matches_t const* matches) {
-  const auto convert_stop =[&](const n::rt::run_stop& stop){
+  auto const convert_stop =[&](n::rt::run_stop const& stop){
     auto result = to_place(tt, &tags, w, pl, matches, tt_location{stop});
     result.arrival_ = stop.time(n::event_type::kArr);
     result.scheduledArrival_ = stop.scheduled_time(n::event_type::kArr);
@@ -313,19 +313,28 @@ std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type ev_t
   assert(r.valid());
   fr.stop_range_.to_ = fr.size();
   fr.stop_range_.from_ = 0U;
-  auto it = std::find_if(fr.begin(), fr.end(), [&](const n::rt::run_stop& stop2){
+  auto it = std::find_if(fr.begin(), fr.end(), [&](n::rt::run_stop const& stop2){
     // The stop index is different so we have to compare the location index
     return stop.get_location_idx() == stop2.get_location_idx();
   });
   if (ev_type == nigiri::event_type::kDep) {
-    if (it != fr.end()) {
-      ++it;
-    }
-    const auto result = utl::to_vec(it, fr.end(), convert_stop);
+    utl::verify(it != fr.end(), "Could not find stopover location in trip");
+    ++it;
+    auto result = utl::to_vec(it, fr.end(), convert_stop);
+    utl::verify(!result.empty(), "Departure is last stop in trip");
+    // Departure time on terminus is meaningless
+    auto& terminus = result.back();
+    terminus.departure_.reset();
+    terminus.scheduledDeparture_.reset();
     return result;
   }
   else {
-    const auto result = utl::to_vec(fr.begin(), it, convert_stop);
+    auto result = utl::to_vec(fr.begin(), it, convert_stop);
+    utl::verify(!result.empty(), "Arrival is first stop in trip");
+    // Arrival time on trip origin is meaningless
+    auto& origin = result.front();
+    origin.arrival_.reset();
+    origin.scheduledArrival_.reset();
     return result;
   }
 }
