@@ -293,25 +293,20 @@ using event_metatype = std::integral_constant<n::event_type, t>;
 
 using event_variant = std::variant<event_metatype<n::event_type::kArr>, event_metatype<n::event_type::kDep>>;
 
-std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type /*ev_type*/, n::rt::run_stop const& stop, n::timetable const* tt, n::rt_timetable const* rtt,
+std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type ev_type, n::rt::run_stop const& stop, n::timetable const* tt, n::rt_timetable const* rtt,
                                     tag_lookup const& tags,
                                     osr::ways const* w,
                                     osr::platforms const* pl,
                                     platform_matches_t const* matches) {
-  //auto const event = ev_type == n::event_type::kArr ? event_variant{event_metatype<n::event_type::kArr>{}} : event_variant{event_metatype<n::event_type::kDep>{}};
-  /*const auto convert_run = [&](auto&& stop_range) {
-
+  const auto convert_stop =[&](const n::rt::run_stop& stop){
+    auto result = to_place(tt, &tags, w, pl, matches, tt_location{stop});
+    result.arrival_ = stop.time(n::event_type::kArr);
+    result.scheduledArrival_ = stop.scheduled_time(n::event_type::kArr);
+    result.departure_ = stop.time(n::event_type::kDep);
+    result.scheduledDeparture_ = stop.scheduled_time(n::event_type::kDep);
+    return result;
   };
-  const auto result = std::visit(utl::overloaded{
-                             [&](event_metatype<n::event_type::kArr>) {
-                                         return convert_run(fr | std::views::reverse);
-                   // reverse run
-                   // slice run range at location and transform into Place
-                 },
-                 [&](event_metatype<n::event_type::kDep>) {
-                                         return convert_run(fr);
-                 },
-  }, event);*/
+
   // TODO is this possible without taking the round trip via the trip id?
   auto const [r, _] = tags.get_trip(*tt, rtt, trip_id);
   auto fr = n::rt::frun{*tt, rtt, r};
@@ -322,16 +317,17 @@ std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type /*ev
     // The stop index is different so we have to compare the location index
     return stop.get_location_idx() == stop2.get_location_idx();
   });
-  if (it != fr.end()) {
-    ++it;
-  }
-  const auto result = utl::to_vec(it, fr.end(), [&](const n::rt::run_stop& stop){
-    auto result = to_place(tt, &tags, w, pl, matches, tt_location{stop});
-    result.arrival_ = stop.time(n::event_type::kArr);
-    result.scheduledArrival_ = stop.scheduled_time(n::event_type::kArr);
+  if (ev_type == nigiri::event_type::kDep) {
+    if (it != fr.end()) {
+      ++it;
+    }
+    const auto result = utl::to_vec(it, fr.end(), convert_stop);
     return result;
-  });
-  return result;
+  }
+  else {
+    const auto result = utl::to_vec(fr.begin(), it, convert_stop);
+    return result;
+  }
 }
 
 api::stoptimes_response stop_times::operator()(
