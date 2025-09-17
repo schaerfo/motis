@@ -1374,6 +1374,8 @@ paths:
             type: boolean
           required: false
           description: |
+            Experimental. Expect unannounced breaking changes (without version bumps).
+
             Optional. Default is `false`. If set to `true`, the following stops are returned
             for departures and the previous stops are returned for arrivals.
 
@@ -2134,10 +2136,18 @@ components:
           type: string
         previousStops:
           type: array
+          description: |
+            Experimental. Expect unannounced breaking changes (without version bumps).
+
+            Stops on the trips before this stop. Returned only if `fetchStop` and `arriveBy` are `true`.
           items:
             $ref: "#/components/schemas/Place"
         nextStops:
           type: array
+          description: |
+            Experimental. Expect unannounced breaking changes (without version bumps).
+
+            Stops on the trips after this stop. Returned only if `fetchStop` is `true` and `arriveBy` is `false`.
           items:
             $ref: "#/components/schemas/Place"
         pickupDropoffType:
