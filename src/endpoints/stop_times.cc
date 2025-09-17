@@ -288,12 +288,7 @@ std::vector<n::rt::run> get_events(
   return evs;
 }
 
-template <n::event_type t>
-using event_metatype = std::integral_constant<n::event_type, t>;
-
-using event_variant = std::variant<event_metatype<n::event_type::kArr>, event_metatype<n::event_type::kDep>>;
-
-std::vector<api::Place> other_stops(std::string_view trip_id, n::event_type ev_type, n::rt::run_stop const& stop, n::timetable const* tt, n::rt_timetable const* rtt,
+std::vector<api::Place> other_stops_impl(std::string_view trip_id, n::event_type ev_type, n::rt::run_stop const& stop, n::timetable const* tt, n::rt_timetable const* rtt,
                                     tag_lookup const& tags,
                                     osr::ways const* w,
                                     osr::platforms const* pl,
@@ -444,6 +439,13 @@ api::stoptimes_response stop_times::operator()(
 
             auto const trip_id = tags_.id(tt_, s, ev_type);
 
+            auto const other_stops = [&](n::event_type desired_event) -> std::optional<std::vector<api::Place>> {
+              if (desired_event != ev_type || !query.fetchStops_.value_or(false)) {
+                return std::nullopt;
+              }
+              return other_stops_impl(trip_id, ev_type, s, &tt_, rtt, tags_, w_, pl_, matches_);
+            };
+
             return {
                 .place_ = std::move(place),
                 .mode_ = to_mode(s.get_clasz(ev_type)),
@@ -462,9 +464,8 @@ api::stoptimes_response stop_times::operator()(
                     to_str(s.get_route_color(ev_type).text_color_),
                 .tripId_ = trip_id,
                 .routeShortName_ = std::string{s.trip_display_name(ev_type)},
-                .otherStops_ = query.fetchStops_.value_or(false) ?
-                                   std::optional{other_stops(trip_id, ev_type, s, &tt_, rtt, tags_, w_, pl_, matches_)}
-                                                                 : std::nullopt,
+                .previousStops_ = other_stops(nigiri::event_type::kArr),
+                .nextStops_ = other_stops(nigiri::event_type::kDep),
                 .pickupDropoffType_ =
                     in_out_allowed ? api::PickupDropoffTypeEnum::NORMAL
                                    : api::PickupDropoffTypeEnum::NOT_ALLOWED,

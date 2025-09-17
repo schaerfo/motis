@@ -2132,7 +2132,11 @@ components:
           type: string
         routeShortName:
           type: string
-        otherStops:
+        previousStops:
+          type: array
+          items:
+            $ref: "#/components/schemas/Place"
+        nextStops:
           type: array
           items:
             $ref: "#/components/schemas/Place"
