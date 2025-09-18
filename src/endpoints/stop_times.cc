@@ -2,9 +2,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <ranges>
-#include <type_traits>
-#include <variant>
 
 #include "utl/concat.h"
 #include "utl/enumerate.h"
@@ -302,14 +299,13 @@ std::vector<api::Place> other_stops_impl(std::string_view trip_id, n::event_type
     return result;
   };
 
-  // TODO is this possible without taking the round trip via the trip id?
   auto const [r, _] = tags.get_trip(*tt, rtt, trip_id);
   auto fr = n::rt::frun{*tt, rtt, r};
   assert(r.valid());
   fr.stop_range_.to_ = fr.size();
   fr.stop_range_.from_ = 0U;
   auto it = std::find_if(fr.begin(), fr.end(), [&](n::rt::run_stop const& stop2){
-    // The stop index is different so we have to compare the location index
+    // The stop index may be different so we have to compare the location index
     return stop.get_location_idx() == stop2.get_location_idx();
   });
   if (ev_type == nigiri::event_type::kDep) {
