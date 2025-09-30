@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Layer from '$lib/map/Layer.svelte';
 	import GeoJSON from '$lib/map/GeoJSON.svelte';
-	import type { Itinerary, Leg, Mode, Place } from '$lib/api/openapi';
+	import type { Itinerary, Leg, Mode, Place, PlanResponse } from '$lib/api/openapi';
 	import { getColor } from '$lib/modeStyle';
 	import polyline from '@mapbox/polyline';
 	import { colord } from 'colord';
@@ -21,49 +21,45 @@
 		}
 	}
 
-	function itinerariesToGeoJSON(i: Array<Itinerary>): GeoJSON.GeoJSON {
+	function itineraryToGeoJSON(i: Itinerary): GeoJSON.GeoJSON {
 		return {
 			type: 'FeatureCollection',
-			features: i.flatMap((itinerary) => {
-				return itinerary.legs.flatMap((l) => {
-					if (l.steps) {
-						const color = isIndividualTransport(l.mode)
-							? getIndividualModeColor(l.mode)
-							: `${getColor(l)[0]}`;
-						const outlineColor = colord(color).darken(0.2).toHex();
-						return l.steps.map((p) => {
-							return {
-								type: 'Feature',
-								properties: {
-									color,
-									outlineColor,
-									level: p.fromLevel,
-									way: p.osmWay
-								},
-								geometry: {
-									type: 'LineString',
-									coordinates: polyline.decode(p.polyline.points, PRECISION).map(([x, y]) => [y, x])
-								}
-							};
-						});
-					} else {
-						const color = `${getColor(l)[0]}`;
-						const outlineColor = colord(color).darken(0.2).toHex();
+			features: i.legs.flatMap((l) => {
+				if (l.steps) {
+					const color = isIndividualTransport(l.mode)
+						? getIndividualModeColor(l.mode)
+						: `${getColor(l)[0]}`;
+					const outlineColor = colord(color).darken(0.2).toHex();
+					return l.steps.map((p) => {
 						return {
 							type: 'Feature',
 							properties: {
+								color,
 								outlineColor,
-								color
+								level: p.fromLevel,
+								way: p.osmWay
 							},
 							geometry: {
 								type: 'LineString',
-								coordinates: polyline
-									.decode(l.legGeometry.points, PRECISION)
-									.map(([x, y]) => [y, x])
+								coordinates: polyline.decode(p.polyline.points, PRECISION).map(([x, y]) => [y, x])
 							}
 						};
-					}
-				});
+					});
+				} else {
+					const color = `${getColor(l)[0]}`;
+					const outlineColor = colord(color).darken(0.2).toHex();
+					return {
+						type: 'Feature',
+						properties: {
+							outlineColor,
+							color
+						},
+						geometry: {
+							type: 'LineString',
+							coordinates: polyline.decode(l.legGeometry.points, PRECISION).map(([x, y]) => [y, x])
+						}
+					};
+				}
 			})
 		};
 	}
@@ -96,20 +92,64 @@
 	}
 
 	const {
-		itineraries,
+		routingResponses,
+		selectedItineraryIdx,
 		level,
 		theme
 	}: {
-		itineraries: Array<Itinerary>;
+		routingResponses: Array<Promise<PlanResponse>>;
+		selectedItineraryIdx: [number, number] | undefined;
 		level: number;
 		theme: 'dark' | 'light';
 	} = $props();
 
-	const geojson = $derived(itinerariesToGeoJSON(itineraries));
+	//const geojson = $derived(itinerariesToGeoJSON(itineraries));
 	//const intermediateStopsGeoJSON = $derived(intermediateStopsToGeoJSON(itineraries));
 </script>
 
-<GeoJSON id="route" data={geojson}>
+{#each routingResponses as r, rI (rI)}
+	{#await r then r}
+		{#each r.itineraries as it, i (i)}
+			<!-- Leave out the selected itinerary here, we show it highlighted -->
+			{#if selectedItineraryIdx == undefined || (selectedItineraryIdx != undefined && selectedItineraryIdx[0] != rI || selectedItineraryIdx[1] != i)}
+			<GeoJSON id="route-{rI}-{i}" data={itineraryToGeoJSON(it)}>
+				<Layer
+					id="path-outline-{rI}-{i}"
+					type="line"
+					layout={{
+						'line-join': 'round',
+						'line-cap': 'round'
+					}}
+					filter={['any', ['!has', 'level'], ['==', 'level', level]]}
+					paint={{
+						'line-color': theme == 'dark' ? '#222' : '#aaa',
+						'line-width': 10,
+						'line-opacity': 0.8
+					}}
+				/>
+				<Layer
+					id="path-{rI}-{i}"
+					type="line"
+					layout={{
+						'line-join': 'round',
+						'line-cap': 'round'
+					}}
+					filter={['any', ['!has', 'level'], ['==', 'level', level]]}
+					paint={{
+						'line-color': theme == 'dark' ? '#555' : '#bbb',
+						'line-width': 7.5,
+						'line-opacity': 0.8
+					}}
+				/>
+			</GeoJSON>
+			{/if}
+		{/each}
+	{/await}
+{/each}
+{#if selectedItineraryIdx != undefined}
+{#await routingResponses[selectedItineraryIdx[0]] then r}
+	{#key r}
+<GeoJSON id="route" data={itineraryToGeoJSON(r.itineraries[selectedItineraryIdx[1]])}>
 	<Layer
 		id="path-outline"
 		type="line"
@@ -119,7 +159,7 @@
 		}}
 		filter={['any', ['!has', 'level'], ['==', 'level', level]]}
 		paint={{
-			'line-color': theme == 'dark' ? '#222' : '#aaa',
+			'line-color': ['get', 'outlineColor'],
 			'line-width': 10,
 			'line-opacity': 0.8
 		}}
@@ -133,13 +173,13 @@
 		}}
 		filter={['any', ['!has', 'level'], ['==', 'level', level]]}
 		paint={{
-			'line-color': theme == 'dark' ? '#555' : '#bbb',
+			'line-color': ['get', 'outlineColor'],
 			'line-width': 7.5,
 			'line-opacity': 0.8
 		}}
 	/>
 </GeoJSON>
-<!--<GeoJSON id="intermediate-stops" data={intermediateStopsGeoJSON}>
+<GeoJSON id="intermediate-stops" data={intermediateStopsToGeoJSON(r.itineraries[selectedItineraryIdx[1]])}>
 	<Layer
 		id="intermediate-stops"
 		type="circle"
@@ -178,4 +218,7 @@
 			'text-color': theme == 'dark' ? '#fff' : '#000'
 		}}
 	/>
-</GeoJSON>-->
+</GeoJSON>
+	{/key}
+{/await}
+{/if}

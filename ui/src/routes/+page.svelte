@@ -75,6 +75,7 @@
 	let dataAttributionLink: string | undefined = $state(undefined);
 	let showMap = $state(!isSmallScreen);
 	let lastSelectedItinerary: Itinerary | undefined = undefined;
+	let selectedItineraryIdx = $state<[number, number] | undefined>(undefined);
 	let lastOneToAllQuery: OneToAllData | undefined = undefined;
 
 	let theme: 'light' | 'dark' =
@@ -560,15 +561,12 @@
 							{routingResponses}
 							{baseQuery}
 							selectItinerary={(selectedItinerary) => pushState('', { selectedItinerary })}
+							bind:selectedItineraryIdx
 							updateStartDest={preprocessItinerary(from, to)}
 						/>
 					</Card>
 				</Control>
-				{#await Promise.all(routingResponses) then datas}
-					{#key datas}
-						<ItineraryGeoJson itineraries={datas.flatMap(d => d.itineraries)} level={level} theme={theme} />
-					{/key}
-				{/await}
+				<ItineraryGeoJson {routingResponses} {selectedItineraryIdx} {level} {theme} />
 			{/if}
 
 			{#if activeTab != 'isochrones' && page.state.selectedItinerary && !page.state.showDepartures}
@@ -580,6 +578,7 @@
 								variant="ghost"
 								onclick={() => {
 									closeItinerary();
+									selectedItineraryIdx = undefined;
 								}}
 							>
 								<X />
