@@ -8,6 +8,19 @@
 
 	export const PRECISION = 6;
 
+	const tableauColors = [
+		'#4e79a7',
+		'#f28e2b',
+		'#e15759',
+		'#76b7b2',
+		'#59a14f',
+		'#edc949',
+		'#af7aa1',
+		'#ff9da7',
+		'#9c755f',
+		'#bab0ab'
+	];
+
 	function isIndividualTransport(m: Mode): boolean {
 		return m == 'WALK' || m == 'BIKE' || m == 'CAR';
 	}
@@ -22,13 +35,16 @@
 	}
 
 	function itineraryToGeoJSON(i: Itinerary): GeoJSON.GeoJSON {
+		// We skip incrementing the color index for individual transport legs
+		// Therefore we cannot use the index of the leg in the array
+		let idx = 0;
 		return {
 			type: 'FeatureCollection',
 			features: i.legs.flatMap((l) => {
 				if (l.steps) {
 					const color = isIndividualTransport(l.mode)
 						? getIndividualModeColor(l.mode)
-						: `${getColor(l)[0]}`;
+						: tableauColors[idx++ % tableauColors.length];
 					const outlineColor = colord(color).darken(0.2).toHex();
 					return l.steps.map((p) => {
 						return {
@@ -46,7 +62,7 @@
 						};
 					});
 				} else {
-					const color = `${getColor(l)[0]}`;
+					const color = tableauColors[idx++ % tableauColors.length];
 					const outlineColor = colord(color).darken(0.2).toHex();
 					return {
 						type: 'Feature',
@@ -64,12 +80,12 @@
 		};
 	}
 
-	function placeToFeature(place: Place, l: Leg): GeoJSON.Feature {
+	function placeToFeature(place: Place, c: String): GeoJSON.Feature {
 		return {
 			type: 'Feature',
 			properties: {
 				name: place.name,
-				color: getColor(l)[0]
+				color: c
 			},
 			geometry: {
 				type: 'Point',
@@ -85,8 +101,8 @@
 				// Add Point features for intermediate stops
 				i.legs
 					.filter((l) => !isIndividualTransport(l.mode))
-					.flatMap((l) =>
-						[l.from, ...(l.intermediateStops ?? []), l.to].map((p) => placeToFeature(p, l))
+					.flatMap((l, idx) =>
+						[l.from, ...(l.intermediateStops ?? []), l.to].map((p) => placeToFeature(p, tableauColors[idx % tableauColors.length]))
 					)
 		};
 	}
