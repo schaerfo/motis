@@ -94,10 +94,6 @@ vector_map<n::location_idx_t, adr_extra_place_idx_t> adr_extend_tt(
     auto const event_counts = utl::scoped_timer{"guesser event_counts"};
     for (auto i = 0U; i != tt.n_locations(); ++i) {
       auto const l = n::location_idx_t{i};
-      if (tt.locations_.parents_[l] != n::location_idx_t::invalid() ||
-          location_place[l] >= importance.size()) {
-        continue;
-      }
 
       auto transport_counts = std::array<unsigned, n::kNumClasses>{};
       for (auto const& r : tt.location_routes_[l]) {
