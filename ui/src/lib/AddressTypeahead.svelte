@@ -8,6 +8,7 @@
 	import { language } from './i18n/translation';
 	import maplibregl from 'maplibre-gl';
 	import { onClickStop } from '$lib/utils';
+	import { getModeStyle } from '$lib/modeStyle';
 
 	let {
 		items = $bindable([]),
@@ -177,6 +178,14 @@
 						<span class="ml-2 text-muted-foreground text-nowrap text-ellipsis overflow-hidden">
 							{getDisplayArea(item.match)}
 						</span>
+						{#if item.match?.modes != undefined}
+							<!-- Deduplicate mode icons -->
+							{#each [...new Set(item.match?.modes.map((value) => getModeStyle( { mode: value } )[0]))] as modeIcon (modeIcon)}
+								<svg class="relative ml-2 w-6 h-6 rounded-full text-muted-foreground fill-current">
+									<use xlink:href={`#${modeIcon}`}></use>
+								</svg>
+							{/each}
+						{/if}
 					</Combobox.Item>
 				{/each}
 			</Combobox.Content>
