@@ -15,6 +15,7 @@
 #include "motis/endpoints/adr/filter_conv.h"
 #include "motis/endpoints/adr/suggestions_to_response.h"
 #include "motis/parse_location.h"
+#include "motis/timetable/modes_to_clasz_mask.h"
 
 namespace n = nigiri;
 namespace a = adr;

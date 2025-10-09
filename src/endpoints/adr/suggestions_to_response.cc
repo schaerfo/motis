@@ -1,5 +1,6 @@
 #include "motis/endpoints/adr/suggestions_to_response.h"
 
+#include "motis/timetable/clasz_to_mode.h"
 #include "utl/for_each_bit_set.h"
 #include "utl/helpers/algorithm.h"
 #include "utl/overloaded.h"
@@ -44,6 +45,7 @@ api::geocode_response suggestions_to_response(
   return utl::to_vec(suggestions, [&](a::suggestion const& s) {
     auto const areas = t.area_sets_[s.area_set_];
     auto type = api::LocationTypeEnum{};
+    auto modes = std::optional<std::vector<api::ModeEnum>>{};
     auto street = std::optional<std::string>{};
     auto house_number = std::optional<std::string>{};
     auto id = std::string{};
@@ -55,6 +57,7 @@ api::geocode_response suggestions_to_response(
                          ? api::LocationTypeEnum::STOP
                          : api::LocationTypeEnum::PLACE;
               if (type == api::LocationTypeEnum::STOP) {
+                modes = clasz_mask_to_modes(t.place_modes_mask_[p]);
                 if (tt != nullptr && tags != nullptr) {
                   auto const l = n::location_idx_t{t.place_osm_ids_[p]};
                   level = get_level(w, pl, matches, l);
@@ -123,6 +126,7 @@ api::geocode_response suggestions_to_response(
 
     return api::Match{
         .type_ = type,
+        .modes_ = modes,
         .tokens_ = std::move(tokens),
         .name_ = s.format(t, f, country_code.value_or("DE")),
         .id_ = std::move(id),
