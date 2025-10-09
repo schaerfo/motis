@@ -90,6 +90,8 @@ vector_map<n::location_idx_t, adr_extra_place_idx_t> adr_extend_tt(
   // Compute importance = transport count weighted by clasz.
   auto importance = vector_map<adr_extra_place_idx_t, float>{};
   importance.resize(place_location.size());
+  auto modes_mask = vector_map<adr_extra_place_idx_t, n::routing::clasz_mask_t>{};
+  modes_mask.resize(place_location.size());
   {
     auto const event_counts = utl::scoped_timer{"guesser event_counts"};
     for (auto i = 0U; i != tt.n_locations(); ++i) {
@@ -121,12 +123,17 @@ vector_map<n::location_idx_t, adr_extra_place_idx_t> adr_extend_tt(
                                        /* Other  */ 1};
       auto const p = tt.locations_.parents_[l];
       auto const x = (p == n::location_idx_t::invalid()) ? l : p;
+      auto const place_idx = location_place[x];
       for (auto const [clasz, t_count] : utl::enumerate(transport_counts)) {
         assert(clasz < kClaszMax);
         assert(x < location_place.size());
-        assert(location_place[x] < importance.size());
-        importance[location_place[x]] +=
+        assert(place_idx < importance.size());
+        assert(place_idx < modes_mask.size());
+        importance[place_idx] +=
             prio[clasz] * static_cast<float>(t_count);
+        if (t_count > 0) {
+          modes_mask[place_idx] |= (1U << clasz);
+        }
       }
     }
   }
@@ -157,7 +164,10 @@ vector_map<n::location_idx_t, adr_extra_place_idx_t> adr_extend_tt(
     t.area_sets_.emplace_back(areas);
   }
 
-  for (auto const [prio, l] : utl::zip(importance, place_location)) {
+  // OSM locations do not have transport modes
+  t.place_modes_mask_.resize(t.place_names_.size());
+
+  for (auto const [prio, modes, l] : utl::zip(importance, modes_mask, place_location)) {
     auto const place_idx = a::place_idx_t{t.place_names_.size()};
 
     auto names = std::vector<std::pair<a::string_idx_t, a::language_idx_t>>{
@@ -204,6 +214,7 @@ vector_map<n::location_idx_t, adr_extra_place_idx_t> adr_extend_tt(
         utl::to_vec(names, [](auto const& n) { return n.second; }));
     t.place_population_.emplace_back(static_cast<std::uint16_t>(
         (prio * 1'000'000) / a::population::kCompressionFactor));
+    t.place_modes_mask_.emplace_back(modes);
     t.place_is_way_.resize(t.place_is_way_.size() + 1U);
 
     if (area_db == nullptr) {
