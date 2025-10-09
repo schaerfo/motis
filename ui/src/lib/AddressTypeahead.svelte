@@ -9,6 +9,7 @@
 	import maplibregl from 'maplibre-gl';
 	import { onClickStop } from '$lib/utils';
 	import { getModeStyle } from '$lib/modeStyle';
+	import type { TransitMode } from './Modes';
 
 	let {
 		items = $bindable([]),
@@ -16,13 +17,15 @@
 		placeholder,
 		name,
 		place,
-		onlyStations = $bindable(false)
+		transitModes = $bindable(),
+		onlyStations = $bindable(true)
 	}: {
 		items?: Array<Location>;
 		selected: Location;
 		placeholder?: string;
 		name?: string;
 		place?: maplibregl.LngLatLike;
+		transitModes: TransitMode[];
 		onlyStations?: boolean;
 	} = $props();
 
@@ -72,7 +75,7 @@
 		const pos = place ? maplibregl.LngLat.convert(place) : undefined;
 		const biasPlace = pos ? { place: `${pos.lat},${pos.lng}` } : {};
 		const { data: matches, error } = await geocode({
-			query: { ...biasPlace, text: inputValue, language, type: onlyStations ? 'STOP' : undefined }
+			query: { ...biasPlace, text: inputValue, language, type: onlyStations ? 'STOP' : undefined, modes: transitModes }
 		});
 		if (error) {
 			console.error('TYPEAHEAD ERROR: ', error);
