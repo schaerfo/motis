@@ -56,6 +56,7 @@ api::geocode_response suggestions_to_response(
               type = t.place_type_[p] == a::place_type::kExtra
                          ? api::LocationTypeEnum::STOP
                          : api::LocationTypeEnum::PLACE;
+              modes = clasz_mask_to_modes(t.place_modes_mask_[p]);
               if (type == api::LocationTypeEnum::STOP) {
                 modes = clasz_mask_to_modes(t.place_modes_mask_[p]);
                 if (tt != nullptr && tags != nullptr) {

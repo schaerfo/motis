@@ -1247,6 +1247,18 @@ paths:
           schema:
             $ref: '#/components/schemas/LocationType'
 
+        - name: modes
+          in: query
+          required: false
+          description: |
+            Optional. Filter stops by available transit modes.
+            Defaults to applying no filter.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Mode'
+          explode: false
+
         - name: place
           in: query
           required: false

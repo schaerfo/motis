@@ -39,6 +39,10 @@ api::geocode_response geocode::operator()(
     utl::verify(parsed.has_value(), "could not parse place {}", s);
     return std::optional{parsed.value().pos_};
   });
+  auto const allowed_modes =
+      params.modes_.transform([](std::vector<api::ModeEnum> const& modes) {
+        return to_clasz_mask(modes);
+      });
 
   auto& ctx = get_guess_context(t_, cache_);
 
@@ -49,9 +53,10 @@ api::geocode_response geocode::operator()(
       lang_indices.push_back(l_idx);
     }
   }
-  auto const token_pos = a::get_suggestions<false>(
-      t_, params.text_, 10U, lang_indices, ctx, place,
-      static_cast<float>(params.placeBias_), to_filter_type(params.type_));
+  auto const token_pos =
+      a::get_suggestions<false>(t_, params.text_, 10U, lang_indices, ctx, place,
+                                static_cast<float>(params.placeBias_),
+                                to_filter_type(params.type_), allowed_modes);
   return suggestions_to_response(t_, f_, tt_, tags_, w_, pl_, matches_,
                                  lang_indices, token_pos, ctx.suggestions_);
 }

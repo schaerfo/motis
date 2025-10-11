@@ -17,7 +17,7 @@
 [adr]
   url=git@github.com:schaerfo/adr.git
   branch=filter-stops-by-mode
-  commit=5ecc0a8865b59e72754ead4129d2c309f1ff3381
+  commit=ac5050fda1d78723d48aa0b188ca6fffb956c46a
 [googletest]
   url=git@github.com:motis-project/googletest.git
   branch=master
