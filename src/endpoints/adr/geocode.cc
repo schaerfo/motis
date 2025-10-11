@@ -16,6 +16,7 @@
 #include "motis/endpoints/adr/suggestions_to_response.h"
 #include "motis/parse_location.h"
 #include "motis/server.h"
+#include "motis/timetable/modes_to_clasz_mask.h"
 
 namespace n = nigiri;
 namespace a = adr;
@@ -40,6 +41,10 @@ api::geocode_response geocode::operator()(
     utl::verify(parsed.has_value(), "could not parse place {}", s);
     return std::optional{parsed.value().pos_};
   });
+  auto const allowed_modes =
+      params.modes_.transform([](std::vector<api::ModeEnum> const& modes) {
+        return to_clasz_mask(modes);
+      });
 
   auto& ctx = get_guess_context(t_, cache_);
 
@@ -57,7 +62,7 @@ api::geocode_response geocode::operator()(
       static_cast<float>(params.placeBias_), to_filter_type(params.type_));
   return suggestions_to_response(t_, f_, ae_, tt_, tags_, w_, pl_, matches_,
                                  lang_indices, token_pos, ctx.suggestions_,
-                                 api_version);
+                                 api_version, allowed_modes);
 }
 
 }  // namespace motis::ep
