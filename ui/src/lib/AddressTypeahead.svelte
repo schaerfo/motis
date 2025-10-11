@@ -15,6 +15,7 @@
 		placeholder,
 		name,
 		place,
+		transitModes,
 		onlyStations = $bindable(false)
 	}: {
 		items?: Array<Location>;
@@ -22,6 +23,7 @@
 		placeholder?: string;
 		name?: string;
 		place?: maplibregl.LngLatLike;
+		transitModes?: Mode[];
 		onlyStations?: boolean;
 	} = $props();
 
@@ -70,12 +72,14 @@
 
 		const pos = place ? maplibregl.LngLat.convert(place) : undefined;
 		const biasPlace = pos ? { place: `${pos.lat},${pos.lng}` } : {};
+		console.log(transitModes);
 		const { data: matches, error } = await geocode({
 			query: {
 				...biasPlace,
 				text: inputValue,
 				language: [language],
-				type: onlyStations ? 'STOP' : undefined
+				type: onlyStations ? 'STOP' : undefined,
+				modes: transitModes
 			}
 		});
 		if (error) {
