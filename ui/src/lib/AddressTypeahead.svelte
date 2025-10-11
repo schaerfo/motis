@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Combobox } from 'bits-ui';
-	import { geocode, type Match } from './api/openapi';
+	import { geocode, type Match, type Mode } from '$lib/api/openapi';
 	import Bus from 'lucide-svelte/icons/bus-front';
 	import House from 'lucide-svelte/icons/map-pin-house';
 	import Place from 'lucide-svelte/icons/map-pin';
@@ -16,6 +16,7 @@
 		placeholder,
 		name,
 		place,
+		transitModes,
 		onlyStations = $bindable(false)
 	}: {
 		items?: Array<Location>;
@@ -23,6 +24,7 @@
 		placeholder?: string;
 		name?: string;
 		place?: maplibregl.LngLatLike;
+		transitModes?: Mode[];
 		onlyStations?: boolean;
 	} = $props();
 
@@ -72,7 +74,13 @@
 		const pos = place ? maplibregl.LngLat.convert(place) : undefined;
 		const biasPlace = pos ? { place: `${pos.lat},${pos.lng}` } : {};
 		const { data: matches, error } = await geocode({
-			query: { ...biasPlace, text: inputValue, language, type: onlyStations ? 'STOP' : undefined }
+			query: {
+				...biasPlace,
+				text: inputValue,
+				language,
+				type: onlyStations ? 'STOP' : undefined,
+				modes: transitModes
+			}
 		});
 		if (error) {
 			console.error('TYPEAHEAD ERROR: ', error);
