@@ -613,7 +613,17 @@
 				{#await r then r}
 					{#each r.itineraries as it, i (i)}
 						{#if selectedItineraryIdx == undefined || (selectedItineraryIdx != undefined && selectedItineraryIdx[0] != rI) || selectedItineraryIdx[1] != i}
-							<ItineraryGeoJson itinerary={it} id="{rI}-{i}" selected={false} {level} {theme} />
+							<ItineraryGeoJson
+								itinerary={it}
+								id="{rI}-{i}"
+								selected={false}
+								selectItinerary={() => {
+									pushState('', { selectedItinerary: it });
+									selectedItineraryIdx = [rI, i];
+								}}
+								{level}
+								{theme}
+							/>
 						{/if}
 					{/each}
 				{/await}
